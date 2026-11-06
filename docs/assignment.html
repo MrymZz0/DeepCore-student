@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مستند پروژه اول هوش مصنوعی — DeepCore: عملیات نجات در معدن</title>
+    
+    <!-- فونت وزیرمتن و فونت مونو -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- موتور رندر فرمول‌های ریاضی KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+        onload="renderMathInElement(document.body, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+        });"></script>
+
+    <style>
+        :root {
+            --bg-page: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-dark: #0b1120;
+            --bg-panel: #151f32;
+            --bg-code: #0f172a;
+            --text-main: #1e293b;
+            --text-muted: #475569;
+            --border-color: #e2e8f0;
+            --primary: #2563eb;
+            --primary-light: #eff6ff;
+            --secondary: #0ea5e9;
+            --accent-purple: #7c3aed;
+            --accent-purple-bg: #f5f3ff;
+            --accent-green: #10b981;
+            --accent-green-bg: #ecfdf5;
+            --accent-amber: #f59e0b;
+            --accent-amber-bg: #fffbeb;
+            --accent-red: #ef4444;
+            --accent-red-bg: #fef2f2;
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.05);
+            --shadow-md: 0 12px 32px rgba(15, 23, 42, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            line-height: 1.85;
+            font-size: 15.5px;
+            padding-bottom: 60px;
+        }
+
+        /* تصحیح جهت‌گیری و نمایش LTR برای فرمول‌های ریاضی داخل متن راست‌به‌چپ */
+        .katex {
+            direction: ltr !important;
+            unicode-bidi: isolate;
+            font-size: 1.05em;
+        }
+        .katex-display {
+            direction: ltr !important;
+            margin: 14px 0 !important;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 6px 0;
+        }
+
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* هدر اصلی پروژه */
+        .hero {
+            background: radial-gradient(circle at 15% 30%, #1e293b 0%, #090d16 70%);
+            color: #ffffff;
+            padding: 48px 0 44px;
+            border-bottom: 4px solid var(--secondary);
+            margin-bottom: 36px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            padding-bottom: 18px;
+            margin-bottom: 28px;
+        }
+
+        .uni-badge {
+            font-size: 14px;
+            font-weight: 700;
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            padding: 6px 18px;
+            border-radius: 999px;
+        }
+
+        .hero-main {
+            display: grid;
+            grid-template-columns: 1.35fr 1fr;
+            gap: 32px;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .hero h1 {
+            font-size: 33px;
+            font-weight: 900;
+            margin-bottom: 14px;
+            color: #f8fafc;
+            line-height: 1.35;
+        }
+
+        .hero h1 span {
+            color: #38bdf8;
+        }
+
+        .hero-subtitle {
+            font-size: 16.5px;
+            color: #cbd5e1;
+            margin-bottom: 20px;
+        }
+
+        /* ویترین تصاویر در هدر */
+        .hero-showcase {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 0 40px rgba(14, 165, 233, 0.15);
+        }
+
+        .hero-sprite-item {
+            text-align: center;
+        }
+
+        .hero-sprite-box {
+            width: 92px;
+            height: 92px;
+            background: #090d16;
+            border: 2px solid #334155;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            padding: 8px;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .hero-sprite-box:hover {
+            transform: translateY(-4px) scale(1.04);
+            border-color: #38bdf8;
+        }
+
+        .hero-sprite-box img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+        }
+
+        .hero-sprite-label {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+        }
+
+        .meta-item {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+        }
+
+        .meta-item .label {
+            font-size: 12px;
+            color: #94a3b8;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .meta-item .value {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        /* کارت‌های بخش‌ها */
+        .section-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            margin-bottom: 28px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--bg-dark);
+            padding-bottom: 14px;
+            margin-bottom: 22px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .section-num {
+            background: var(--primary);
+            color: #fff;
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        h3 {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 26px 0 12px;
+        }
+
+        p {
+            margin-bottom: 14px;
+            color: #334155;
+        }
+
+        ul, ol {
+            padding-right: 24px;
+            margin-bottom: 16px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            color: #334155;
+        }
+
+        /* کارت‌های تصویری عناصر محیط بازی */
+        .sprite-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+            gap: 18px;
+            margin: 22px 0;
+        }
+
+        .sprite-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            background: #fafcff;
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .sprite-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .sprite-thumb {
+            width: 78px;
+            height: 78px;
+            border-radius: 12px;
+            background: #0b1120;
+            border: 2px solid #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .sprite-thumb img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .char-tag {
+            position: absolute;
+            bottom: -6px;
+            left: -6px;
+            background: var(--primary);
+            color: #ffffff;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            font-size: 13px;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        }
+
+        .sprite-info {
+            flex: 1;
+        }
+
+        .sprite-info-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .sprite-info strong {
+            font-size: 15.5px;
+            color: #0f172a;
+        }
+
+        .cost-badge {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 2px 9px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            color: #1e293b;
+            white-space: nowrap;
+        }
+
+        .sprite-info p {
+            font-size: 13.5px;
+            margin-bottom: 0;
+            line-height: 1.65;
+        }
+
+        /* دیاگرام تصویری مکانیک پل‌سازی */
+        .mechanic-flow {
+            background: var(--bg-dark);
+            color: #f8fafc;
+            border-radius: var(--radius-md);
+            padding: 22px;
+            margin: 22px 0;
+            border: 1px solid #334155;
+        }
+
+        .mechanic-flow-title {
+            font-size: 15.5px;
+            font-weight: 800;
+            color: #38bdf8;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .flow-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            direction: ltr;
+        }
+
+        .flow-step {
+            background: var(--bg-panel);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .flow-step img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+
+        .flow-step-text {
+            font-size: 13px;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        .flow-step-text strong {
+            display: block;
+            color: #f8fafc;
+            font-size: 13.5px;
+        }
+
+        .flow-step-text span {
+            color: #94a3b8;
+        }
+
+        .flow-arrow {
+            font-family: 'JetBrains Mono', monospace;
+            color: #fcd34d;
+            font-weight: 700;
+            font-size: 13.5px;
+            text-align: center;
+            padding: 0 6px;
+        }
+
+        /* بنر نمایش گرید کامل آیکون‌ها */
+        .overview-sheet-box {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 24px;
+            align-items: center;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            margin-top: 20px;
+        }
+
+        .overview-sheet-box img {
+            width: 100%;
+            border-radius: 10px;
+            border: 2px solid #0f172a;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* جدول‌ها */
+        .table-wrap {
+            overflow-x: auto;
+            margin: 18px 0;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: right;
+            font-size: 14.5px;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #0f172a;
+            font-weight: 800;
+            padding: 13px 16px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: #334155;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        .table-sprite {
+            width: 34px;
+            height: 34px;
+            object-fit: contain;
+            vertical-align: middle;
+            background: #0b1120;
+            border-radius: 6px;
+            padding: 3px;
+            margin-left: 8px;
+        }
+
+        /* بلوک‌های کد */
+        code {
+            font-family: 'JetBrains Mono', Consolas, monospace;
+            font-size: 13.5px;
+            background: #f1f5f9;
+            color: #0f172a;
+            padding: 2px 7px;
+            border-radius: 5px;
+            direction: ltr;
+            display: inline-block;
+        }
+
+        pre {
+            background: var(--bg-code);
+            color: #f8fafc;
+            padding: 20px;
+            border-radius: var(--radius-md);
+            overflow-x: auto;
+            direction: ltr;
+            text-align: left;
+            margin: 16px 0;
+            border: 1px solid #334155;
+            line-height: 1.65;
+        }
+
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: 13.5px;
+            display: block;
+        }
+
+        .kw { color: #38bdf8; font-weight: 600; }
+        .fn { color: #fcd34d; font-weight: 600; }
+        .cm { color: #94a3b8; font-style: italic; }
+        .st { color: #86efac; }
+        .num { color: #c084fc; }
+
+        /* باکس‌های هشدار و نکته */
+        .callout {
+            padding: 18px 22px;
+            border-radius: var(--radius-md);
+            margin: 18px 0;
+            border-right: 5px solid;
+        }
+
+        .callout-title {
+            font-weight: 800;
+            font-size: 16px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .callout-info { background: var(--primary-light); border-right-color: var(--primary); }
+        .callout-info .callout-title { color: var(--primary); }
+
+        .callout-warn { background: var(--accent-amber-bg); border-right-color: var(--accent-amber); }
+        .callout-warn .callout-title { color: #b45309; }
+
+        .callout-danger { background: var(--accent-red-bg); border-right-color: var(--accent-red); }
+        .callout-danger .callout-title { color: #b91c1c; }
+
+        .callout-bonus { background: var(--accent-purple-bg); border-right-color: var(--accent-purple); }
+        .callout-bonus .callout-title { color: var(--accent-purple); }
+
+        /* باکس نمایش فرمول ریاضی اختصاصی */
+        .math-box {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 16px 20px;
+            border-radius: var(--radius-md);
+            margin: 16px 0;
+            border: 1px solid #334155;
+            direction: ltr;
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 999px;
+        }
+        .badge-core { background: #dbeafe; color: #1d4ed8; }
+        .badge-bonus { background: #ede9fe; color: #6d28d9; }
+        .badge-given { background: #d1fae5; color: #047857; }
+
+        /* شروع سریع: نخستین بخش قابل استفاده برای دانشجوی تازه‌وارد */
+        .quick-start { margin: 34px 0 28px; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid #bae6fd; box-shadow: var(--shadow-md); }
+        .quick-start-header { background: linear-gradient(120deg, #0f172a, #075985); color: #f8fafc; padding: 24px 28px; }
+        .quick-start-header h2 { color: #fff; font-size: 23px; margin-bottom: 6px; }
+        .quick-start-header p { color: #dbeafe; margin: 0; }
+        .quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #bae6fd; }
+        .quick-step { background: #fff; padding: 24px; position: relative; }
+        .quick-number { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: #0284c7; color: #fff; font-weight: 800; margin-bottom: 12px; }
+        .quick-step h3 { margin: 0 0 8px; font-size: 17px; }
+        .quick-step p { font-size: 14px; margin: 0; }
+        .quick-step pre { margin: 12px 0 0; padding: 12px; font-size: 12px; }
+        .journey { display: flex; align-items: stretch; gap: 8px; margin: 22px 0 4px; direction: rtl; }
+        .journey-card { flex: 1; min-width: 0; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; text-align: center; font-size: 13px; }
+        .journey-card strong { display: block; color: #0f172a; margin-bottom: 4px; }
+        .journey-arrow { display: flex; align-items: center; color: #0284c7; font-weight: 900; }
+        .algorithm-lanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+        .algorithm-lane { border-radius: 12px; padding: 16px; border: 1px solid var(--border-color); }
+        .algorithm-lane h3 { margin: 0 0 7px; font-size: 16px; }
+        .algorithm-lane p { margin: 0; font-size: 13px; }
+        .lane-blue { background: #eff6ff; border-color: #bfdbfe; }
+        .lane-amber { background: #fffbeb; border-color: #fde68a; }
+        .lane-purple { background: #f5f3ff; border-color: #ddd6fe; }
+        @media (max-width: 820px) {
+            .hero-main { grid-template-columns: 1fr; }
+            .overview-sheet-box { grid-template-columns: 1fr; }
+            .quick-grid, .algorithm-lanes { grid-template-columns: 1fr; }
+            .journey { flex-direction: column; }
+            .journey-arrow { justify-content: center; transform: rotate(90deg); }
+        }
+
+        @media print {
+            body { background: #fff; font-size: 13px; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .section-card { box-shadow: none; border: 1px solid #cbd5e1; page-break-inside: avoid; }
+            .hero { padding: 24px 0; margin-bottom: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Repository-layout notice: keep this near the top so the HTML handout
+         remains accurate when it is opened independently of README.md. -->
+    <div dir="rtl" style="max-width:1140px;margin:20px auto 0;padding:0 24px;color:#334155">
+        <div class="callout callout-info">
+            <span class="callout-title">راهنمای ساختار نسخه‌ی جدید</span>
+            فایل‌های قابل تغییر دانشجو <code>src/deepcore/solver.py</code> و
+            <code>src/deepcore/heuristics.py</code> هستند. آزمون‌های عمومی در
+            <code>tests/test_search.py</code> قرار دارند و با دستور
+            <code>python -m unittest discover -s tests -v</code> اجرا می‌شوند.
+            فایل‌های <code>environment.py</code>، <code>state.py</code> و رابط گرافیکی
+            بخش زیرساخت هستند. راهنمای گام‌به‌گام در <code>student-guide-fa.md</code> است.
+        </div>
+    </div>
+
+    <!-- هدر اصلی پروژه -->
+    <header class="hero">
+        <div class="container">
+            <div class="hero-top">
+                <span class="uni-badge">دانشگاه اصفهان — دانشکده مهندسی کامپیوتر</span>
+                <span style="color: #94a3b8; font-size: 14px;">مبتنی بر فصول ۳ و ۴ کتاب مرجع AIMA (راسل و نورویگ)</span>
+            </div>
+
+            <div class="hero-main">
+                <div>
+                    <h1>پروژه اول: <span>DeepCore</span> — عملیات نجات خودکار در معدن</h1>
+                    <p class="hero-subtitle">
+                        مدل‌سازی مسئله جستجو در فضای حالت، پل‌سازی پویا با تخته‌سنگ‌ها، حفاری لیزری آوار و پیاده‌سازی الگوریتم‌های جستجوی ناآگاهانه (Uninformed) و آگاهانه (Informed) به همراه طراحی هیوریستیک‌های قابل قبول و سازگار.
+                    </p>
+                </div>
+
+                <div class="hero-showcase">
+                    <div class="hero-sprite-item">
+                        <div class="hero-sprite-box">
+                            <img data-sprite="drill_vehicle" src="../assets/drill_vehicle.png" alt="DeepCore Drill Bot">
+                        </div>
+                        <div class="hero-sprite-label">ربات حفار (S)</div>
+                    </div>
+                    <div class="hero-sprite-item">
+                        <div class="hero-sprite-box">
+                            <img data-sprite="miner" src="../assets/miner.png" alt="Trapped Miner">
+                        </div>
+                        <div class="hero-sprite-label">معدنچی (M)</div>
+                    </div>
+                    <div class="hero-sprite-item">
+                        <div class="hero-sprite-box">
+                            <img data-sprite="teleporter_pad" src="../assets/teleporter_pad.png" alt="Teleporter Pad">
+                        </div>
+                        <div class="hero-sprite-label">سکوی خروج (E)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <span class="label">نام درس</span>
+                    <span class="value">مبانی و کاربردهای هوش مصنوعی</span>
+                </div>
+                <div class="meta-item">
+                    <span class="label">استاد درس</span>
+                    <span class="value">دکتر فاطمه شفیع‌زادگان</span>
+                </div>
+                <div class="meta-item">
+                    <span class="label">نیم‌سال تحصیلی</span>
+                    <span class="value">پاییز ۱۴۰۵ (Fall 2026)</span>
+                </div>
+                <div class="meta-item">
+                    <span class="label">بارم پروژه</span>
+                    <span class="value">۱۰۰ نمره اصلی + حداقل ۳۰ نمره امتیازی</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <section class="quick-start" id="start">
+            <div class="quick-start-header">
+                <h2>از اینجا شروع کنید — سه گام تا اولین اجرا</h2>
+                <p>نیازی به شناخت آرگومان‌های خط فرمان یا ساختار پکیج Python ندارید؛ فقط پوشه را باز کنید و دستور نخست را اجرا کنید.</p>
+            </div>
+            <div class="quick-grid">
+                <div class="quick-step"><span class="quick-number">۱</span><h3>Python را بررسی کنید</h3><p>Python 3.10 یا بالاتر را نصب کنید. سپس ترمینال را در پوشه‌ی پروژه باز کنید.</p><pre><code>python --version</code></pre></div>
+                <div class="quick-step"><span class="quick-number">۲</span><h3>پروژه را اجرا کنید</h3><p>این دستور منوی ساده‌ی پروژه را باز می‌کند. گزینه‌ی ۱ نمونه‌ی BFS آماده را اجرا می‌کند.</p><pre><code>python main.py</code></pre></div>
+                <div class="quick-step"><span class="quick-number">۳</span><h3>فقط دو فایل را کامل کنید</h3><p>پس از هر تغییر، از منو گزینه‌ی ۲ را بزنید تا آزمون‌های عمومی اجرا شوند.</p><pre><code>src/deepcore/solver.py
+src/deepcore/heuristics.py</code></pre></div>
+            </div>
+            <div style="padding:0 24px 22px; background:#fff;">
+                <div class="journey" aria-label="مسیر انجام پروژه">
+                    <div class="journey-card"><strong>اجرا</strong><span><code>python main.py</code></span></div><div class="journey-arrow">←</div>
+                    <div class="journey-card"><strong>شناخت محیط</strong><span>قوانین، API و نمونه‌ی BFS</span></div><div class="journey-arrow">←</div>
+                    <div class="journey-card"><strong>پیاده‌سازی</strong><span>Solver و Heuristics</span></div><div class="journey-arrow">←</div>
+                    <div class="journey-card"><strong>آزمون و گزارش</strong><span>Tests و Report.pdf</span></div>
+                </div>
+                <div class="algorithm-lanes">
+                    <div class="algorithm-lane lane-blue"><h3>جست‌وجوی گام‌محور</h3><p><strong>BFS / DFS / IDS</strong><br>تمرکز بر ترتیب بسط گره‌ها و تعداد گام‌ها.</p></div>
+                    <div class="algorithm-lane lane-amber"><h3>جست‌وجوی هزینه‌محور</h3><p><strong>UCS</strong><br>اولویت با کمترین هزینه‌ی مسیر <code>g(n)</code> است.</p></div>
+                    <div class="algorithm-lane lane-purple"><h3>جست‌وجوی راهنما‌دار</h3><p><strong>GBFS / A*</strong><br>از <code>h(n)</code> یا <code>g(n)+h(n)</code> برای انتخاب گره بعدی استفاده می‌کند.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- بخش ۱: داستان و عناصر محیط -->
+        <section class="section-card">
+            <h2 class="section-title">
+                <span class="section-num">۱</span>
+                داستان و عناصر گرافیکی محیط بازی (DeepCore)
+            </h2>
+            <p>
+                پس از وقوع یک زمین‌لرزه شدید در یک معدن زیرزمینی، تعدادی از معدنچیان (<code>M</code>) در اتاقک‌های عمیق معدن محبوس شده‌اند. شما باید الگوریتم‌های تصمیم‌گیری و مسیریابی ربات حفار <strong>DeepCore</strong> (<code>S</code>) را طوری پیاده‌سازی کنید که با کمترین مصرف انرژی، تمامی معدنچیان را سوار کپسول نجات خود کرده و به سکوی استخراج (<code>E</code>) برساند.
+            </p>
+
+            <div class="sprite-grid">
+                <div class="sprite-card">
+                    <div class="sprite-thumb">
+                        <img data-sprite="drill_vehicle" src="../assets/drill_vehicle.png" alt="Drill Vehicle">
+                        <span class="char-tag">S</span>
+                    </div>
+                    <div class="sprite-info">
+                        <div class="sprite-info-top">
+                            <strong>ربات حفار امدادگر (DeepCore)</strong>
+                            <span class="cost-badge" style="background:#dbeafe; color:#1e40af;">شروع حرکت</span>
+                        </div>
+                        <p>ربات مجهز به مته پلاسما و کپسول نجات تحت فشار. قادر به حرکت در ۴ جهت، هل دادن تخته‌سنگ‌ها و حفاری آوار است.</p>
+                    </div>
+                </div>
+
+                <div class="sprite-card">
+                    <div class="sprite-thumb">
+                        <img data-sprite="miner" src="../assets/miner.png" alt="Miner">
+                        <span class="char-tag">M</span>
+                    </div>
+                    <div class="sprite-info">
+                        <div class="sprite-info-top">
+                            <strong>معدنچی محبوس (Trapped Miner)</strong>
+                            <span class="cost-badge" style="background:#fef3c7; color:#92400e;">جریمه بار: $+2k$</span>
+                        </div>
+                        <p>با ورود ربات به خانه معدنچی، او وارد کپسول نجات می‌شود ($k \leftarrow k + 1$) و وزن ربات را در تمامی گام‌های بعدی افزایش می‌دهد.</p>
+                    </div>
+                </div>
+
+                <div class="sprite-card">
+                    <div class="sprite-thumb">
+                        <img data-sprite="teleporter_pad" src="../assets/teleporter_pad.png" alt="Teleporter Pad">
+                        <span class="char-tag">E</span>
+                    </div>
+                    <div class="sprite-info">
+                        <div class="sprite-info-top">
+                            <strong>سکوی استخراج (Teleporter Pad)</strong>
+                            <span class="cost-badge" style="background:#cffafe; color:#155e75;">نقطه هدف</span>
+                        </div>
+                        <p>مقصد نهایی عملیات. زمانی که تمام معدنچیان سوار شده باشند و ربات روی این سکو قرار گیرد، عملیات موفقیت‌آمیز است.</p>
+                    </div>
+                </div>
+
+                <div class="sprite-card">
+                    <div class="sprite-thumb">
+                        <img data-sprite="boulder" src="../assets/boulder.png" alt="Boulder">
+                        <span class="char-tag">B</span>
+                    </div>
+                    <div class="sprite-info">
+                        <div class="sprite-info-top">
+                            <strong>تخته‌سنگ سنگین (Boulder)</strong>
+                            <span class="cost-badge" style="background:#e0e7ff; color:#1e40af;">هل دادن: $6 + 2k$</span>
+                        </div>
+                        <p>تخته‌سنگ قابل هل دادن به خانه مجاور (اگر خانه پشت آن خالی، لجن یا پرتگاه باشد). کشیدن سنگ به عقب مجاز نیست.</p>
+                    </div>
+                </div>
+
+                <div class="sprite-card">
+                    <div class="sprite-thumb">
+                        <img data-sprite="pit" src="../assets/pit.png" alt="Bottomless Pit">
+                        <span class="char-tag">O</span>
+                    </div>
+                    <div class="sprite-info">
+                        <div class="sprite-info-top">
+                            <strong>پرتگاه بدون ته (Bottomless Pit)</strong>
+                            <span class="cost-badge" style="background:#fee2e2; color:#991b1b;">غیرقابل عبور</span>
+                        </div>
+                        <p>ورود مستقیم به پرتگاه ممنوع است؛ اما با هل دادن یک تخته‌سنگ ($B$) به درون آن، پرتگاه پر شده و تبدیل به پل می‌شود.</p>
+                    </div>
+                </div>
+
+                <div class="sprite-card">
+                    <div class="sprite-thumb">
+                        <img data-sprite="bridge" src="../assets/bridge.png" alt="Bridge">
+                        <span class="char-tag">=</span>
+                    </div>
+                    <div class="sprite-info">
+                        <div class="sprite-info-top">
+                            <strong>پل مستحکم (Reinforced Bridge)</strong>
+                            <span class="cost-badge" style="background:#dcfce7; color:#166534;">عبور: $1 + 2k$</span>
+                        </div>
+                        <p>پس از افتادن سنگ در پرتگاه $O$، آن خانه برای همیشه به یک پل ایمن با هزینه حرکت پایه ۱ تبدیل می‌شود.</p>
+                    </div>
+                </div>
+
+                <div class="sprite-card">
+                    <div class="sprite-thumb">
+                        <img data-sprite="toxic_slime" src="../assets/toxic_slime.png" alt="Toxic Slime">
+                        <span class="char-tag">~</span>
+                    </div>
+                    <div class="sprite-info">
+                        <div class="sprite-info-top">
+                            <strong>لجن سمی (Toxic Slime)</strong>
+                            <span class="cost-badge" style="background:#dcfce7; color:#15803d;">عبور: $5 + 2k$</span>
+                        </div>
+                        <p>مسیرهای اسیدی و لجنی که عبور از هر خانه آن ۵ واحد انرژی پایه (به علاوه جریمه بار کپسول) مصرف می‌کند.</p>
+                    </div>
+                </div>
+
+                <div class="sprite-card">
+                    <div class="sprite-thumb">
+                        <img data-sprite="ore_rubble" src="../assets/ore_rubble.png" alt="Ore Rubble">
+                        <span class="char-tag">@</span>
+                    </div>
+                    <div class="sprite-info">
+                        <div class="sprite-info-top">
+                            <strong>آوار معدنی (Ore Rubble)</strong>
+                            <span class="cost-badge" style="background:#ffedd5; color:#9a3412;">حفاری: ۱۰</span>
+                        </div>
+                        <p>مانع صخره‌ای که با عمل <code>DRILL</code> از خانه مجاور (با هزینه ثابت ۱۰) متلاشی شده و به زمین هموار تبدیل می‌شود.</p>
+                    </div>
+                </div>
+
+                <div class="sprite-card">
+                    <div class="sprite-thumb">
+                        <img data-sprite="rock_wall" src="../assets/rock_wall.png" alt="Rock Wall">
+                        <span class="char-tag">#</span>
+                    </div>
+                    <div class="sprite-info">
+                        <div class="sprite-info-top">
+                            <strong>دیوار سنگی (Rock Wall)</strong>
+                            <span class="cost-badge">دیوار ثابت</span>
+                        </div>
+                        <p>دیوارهای سنگی غیرقابل نفوذ و غیرقابل حفاری که مرزهای اتاقک‌ها و دالان‌های معدن را تشکیل می‌دهند.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- دیاگرام نحوه پل‌سازی -->
+            <div class="mechanic-flow">
+                <div class="mechanic-flow-title">⚙️ مکانیک ۱: نحوه هل دادن تخته‌سنگ و پل‌سازی روی پرتگاه‌ها (عمل PUSH)</div>
+                <div class="flow-row">
+                    <div class="flow-step">
+                        <img data-sprite="drill_vehicle" src="../assets/drill_vehicle.png" alt="Bot">
+                        <div class="flow-step-text">
+                            <strong>1. DeepCore Bot</strong>
+                            <span>موقعیت ربات پشت سنگ</span>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">+</div>
+                    <div class="flow-step">
+                        <img data-sprite="boulder" src="../assets/boulder.png" alt="Boulder">
+                        <div class="flow-step-text">
+                            <strong>2. Boulder (B)</strong>
+                            <span>مجاور پرتگاه</span>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">
+                        ── PUSH_d ──►<br>
+                        <span style="color:#38bdf8; font-size:12px;">$\text{Cost} = 6 + 2k$</span>
+                    </div>
+                    <div class="flow-step">
+                        <img data-sprite="pit" src="../assets/pit.png" alt="Pit">
+                        <div class="flow-step-text">
+                            <strong>3. Pit (O)</strong>
+                            <span>پر شدن با تخته‌سنگ</span>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">══►</div>
+                    <div class="flow-step" style="border-color: #10b981;">
+                        <img data-sprite="bridge" src="../assets/bridge.png" alt="Bridge">
+                        <div class="flow-step-text">
+                            <strong style="color:#34d399;">4. Bridge (=)</strong>
+                            <span>$\text{Cost} = 1 + 2k$</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- نمایش تصویر شیت آیکون‌ها -->
+            <div class="overview-sheet-box">
+                <img data-sprite="icon_grid" src="../assets/Sci-Fi Mining Rescue Icon Grid.png" alt="DeepCore Asset Grid">
+                <div>
+                    <h3 style="margin-top: 0;">چالش پیچیدگی و فضای حالت در مراحل ۱ تا ۵</h3>
+                    <p>
+                        در مراحل پیشرفته (<code>Level 3</code> تا <code>Level 5</code>)، اتاقک‌های معدن دارای چندین تخته‌سنگ در فضاهای باز (با ضریب انشعاب بالا) و پرتگاه‌های چندبخشی (<code>OO</code> و <code>OOO</code>) هستند. برای عبور از یک پرتگاه ۲ یا ۳ خانه‌ای، ربات باید سنگ اول را داخل خانه اول بیندازد تا پل اول ساخته شود، سپس از روی پل اول عبور کرده و سنگ دوم را هل داده و داخل خانه دوم پرتگاه بیندازد!
+                    </p>
+                    <p style="margin-bottom: 0;">
+                        در مراحل پیشرفته، تفاوت هیوریستیک‌ها را با متریک‌های مستقل از سخت‌افزار مانند تعداد گره‌های بسط‌یافته، تعداد گره‌های تولیدشده و بیشینه اندازه فرانتیر مقایسه کنید. زمان اجرا فقط می‌تواند به‌صورت اطلاعات جانبی در گزارش بیاید و معیار نمره‌دهی نیست.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- بخش ۲: فرمول‌بندی ریاضی AIMA -->
+        <section class="section-card">
+            <h2 class="section-title">
+                <span class="section-num">۲</span>
+                فرمول‌بندی رسمی مسئله بر اساس استانداردهای فصل ۳ کتاب AIMA
+            </h2>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 180px;">مؤلفه AIMA</th>
+                            <th>تعریف ریاضی و پیاده‌سازی در کد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>فضای حالت (State)</strong></td>
+                            <td>
+                                هر حالت $s$ توسط یک چندتایی ۶‌بخشی از کلاس <code>DeepCoreState</code> مدل می‌شود:
+                                <br>
+                                $$s = \big(\text{bot\_pos}, \text{carried}, \text{boulders}, \text{chasms}, \text{rubble}, \text{miners}\big)$$
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>حالت اولیه ($s_0$)</strong></td>
+                            <td>
+                                وضعیت آغازین بازی که در آن $\text{bot\_pos} = S$، تعداد معدنچیان سوارشده برابر صفر است ($\text{carried} = 0$) و مجموعه‌های تغییرناپذیر <code>frozenset</code> مکان اولیه المان‌های $B, O, @, M$ را در بر دارند.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>مجموعه عمل‌ها ($A(s)$)</strong></td>
+                            <td>
+                                حداکثر ۱۲ عمل مجاز در چهار جهت اصلی $d \in \{\text{N}, \text{S}, \text{E}, \text{W}\}$:
+                                <br>
+                                $$A(s) \subseteq \{\text{MOVE}_d, \text{PUSH}_d, \text{DRILL}_d \mid d \in \{\text{N}, \text{S}, \text{E}, \text{W}\}\}$$
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>مدل انتقال ($T(s, a)$)</strong></td>
+                            <td>
+                                متد <code>env.transition(state, action)</code> وضعیت بعدی $s'$ و هزینه گام را برمی‌گرداند:
+                                <br>
+                                • در عمل $\text{MOVE}_d$: اگر خانه مقصد شامل معدنچی باشد، معدنچی حذف شده و $\text{carried}' = \text{carried} + 1$ می‌شود.
+                                <br>
+                                • در عمل $\text{PUSH}_d$: ربات در جای سنگ قرار می‌گیرد. اگر خانه پشت سنگ پرتگاه باز باشد، هر دو المان حذف شده و پل تشکیل می‌شود.
+                                <br>
+                                • در عمل $\text{DRILL}_d$: آوار از نقشه محو شده و ربات تغییر مکان نمی‌دهد.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>آزمون هدف ($G(s)$)</strong></td>
+                            <td>
+                                رسیدن به سکوی استخراج به شرطی که تمامی معدنچیان داخل کپسول سوار شده باشند:
+                                <br>
+                                $$G(s) = \text{True} \iff \big(|\text{state.miners}| = 0\big) \land \big(\text{state.bot\_pos} = \text{env.elevator\_pos}\big)$$
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>فرمول دقیق تابع هزینه گام $c(s, a, s')$</h3>
+            <p>
+                اگر در وضعیت فعلی $s$، تعداد $k = s.\text{carried}$ معدنچی سوار کپسول نجات ربات باشند، هزینه اجرای عمل $a$ به صورت زیر تعیین می‌گردد:
+            </p>
+            <div class="math-box">
+                $$c(s, a, s') = \begin{cases} 
+                1 + 2k & \text{if } a = \text{MOVE}_d \text{ and } s'.\text{bot\_pos} \in \{\text{Floor}, \text{Bridge}\} \\
+                5 + 2k & \text{if } a = \text{MOVE}_d \text{ and } s'.\text{bot\_pos} \in \text{Sludge} \\
+                6 + 2k & \text{if } a = \text{PUSH}_d \\
+                10 & \text{if } a = \text{DRILL}_d \quad (\text{ثابت و مستقل از بار } k)
+                \end{cases}$$
+            </div>
+        </section>
+
+        <!-- بخش ۳: مستندات کامل متدها و API ها -->
+        <section class="section-card">
+            <h2 class="section-title">
+                <span class="section-num">۳</span>
+                مستندات متدها و راهنمای ورودی و خروجی (API Reference)
+            </h2>
+            <p>
+                کدهای زیرساختی محیط و رابط کاربری آماده هستند. شما منحصراً فایل‌های <code>solver.py</code>، <code>heuristics.py</code> و <code>test_search.py</code> را پیاده‌سازی و تکمیل می‌نمایید.
+            </p>
+
+            <h3>۱. کلاس وضعیت <code>DeepCoreState</code> (فایل <code>state.py</code>)</h3>
+<pre><code><span class="kw">@dataclass</span>(frozen=<span class="kw">True</span>)
+<span class="kw">class</span> <span class="fn">DeepCoreState</span>:
+    bot_pos: Tuple[int, int]             <span class="cm"># مختصات سطر و ستون ربات (r, c)</span>
+    carried: int                         <span class="cm"># تعداد معدنچیان سوار شده (k)</span>
+    boulders: FrozenSet[Tuple[int, int]] <span class="cm"># موقعیت تخته‌سنگ‌های آزاد</span>
+    chasms: FrozenSet[Tuple[int, int]]   <span class="cm"># موقعیت پرتگاه‌های پرنشده</span>
+    rubble: FrozenSet[Tuple[int, int]]   <span class="cm"># موقعیت آوارهای خردنشده</span>
+    miners: FrozenSet[Tuple[int, int]]   <span class="cm"># موقعیت معدنچیان نجات‌نیافته</span></code></pre>
+
+            <h3>۲. کلاس خروجی <code>SearchMetrics</code> (فایل <code>state.py</code>)</h3>
+            <p>تمامی توابع الگوریتم‌های جستجو در <code>solver.py</code> باید این شیء را بازگردانند:</p>
+<pre><code><span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="fn">SearchMetrics</span>:
+    algorithm_name: str = <span class="st">"Unknown"</span>
+    solved: bool = <span class="kw">False</span>                         <span class="cm"># در صورت رسیدن به هدف True شود</span>
+    solution_actions: List[str] = ...            <span class="cm"># لیست رشته‌ای عمل‌ها مثل ["MOVE_N", "PUSH_E", ...]</span>
+    total_cost: int = <span class="num">0</span>                          <span class="cm"># مجموع هزینه گام‌های مسیر بهینه یا به دست آمده</span>
+    nodes_expanded: int = <span class="num">0</span>                      <span class="cm"># تعداد وضعیت‌های پاپ‌شده از فرانتیر</span>
+    nodes_generated: int = <span class="num">0</span>                     <span class="cm"># تعداد وضعیت‌های فرزند تولیدشده</span>
+    max_frontier_size: int = <span class="num">0</span>                   <span class="cm"># بیشترین اندازه همزمان صف یا پشته فرانتیر</span>
+    max_memory_size: int = <span class="num">0</span>                     <span class="cm"># بیشترین تعداد حالت‌های همزمان در حافظه (فرانتیر + اکسپلورد)</span>
+    runtime_sec: float = <span class="num">0.0</span>                     <span class="cm"># زمان اجرای الگوریتم بر حسب ثانیه</span>
+    explored_order: List[Tuple[int, int]] = ...  <span class="cm"># ثبت bot_pos گره‌ها به ترتیب بسط برای رسم نقشه حرارتی</span>
+    status_message: str = <span class="st">"Ready"</span></code></pre>
+
+            <h3>۳. متدهای محیط <code>DeepCoreEnv</code> (ورودی <code>env</code>)</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 280px;">متد</th>
+                            <th style="width: 220px;">خروجی</th>
+                            <th>کاربرد و توضیحات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>env.get_initial_state()</code></td>
+                            <td><code>DeepCoreState</code></td>
+                            <td>وضعیت ابتدایی نقشه ($s_0$) را در اختیارتان می‌گذارد.</td>
+                        </tr>
+                        <tr>
+                            <td><code>env.is_goal(state)</code></td>
+                            <td><code>bool</code></td>
+                            <td>بررسی می‌کند آیا وضعیت داده‌شده شرط آزمون هدف $G(s)$ را داراست یا خیر.</td>
+                        </tr>
+                        <tr>
+                            <td><code>env.get_successors(state)</code></td>
+                            <td><code>List[Tuple[Action, DeepCoreState, int]]</code></td>
+                            <td>
+                                <strong>تولید فرزندان در جستجوی پیشرو:</strong> لیستی از سه‌تایی‌های <code>(action, next_state, step_cost)</code> تولید می‌کند. برای رشته عمل از <code>action.value</code> استفاده نمایید.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>env.get_goal_states()</code></td>
+                            <td><code>List[DeepCoreState]</code></td>
+                            <td>مجموعه‌ای از حالت‌های پایانی هم‌ارز در محل آسانسور را برای مقداردهی اولیه فرانتیر پسرو در <strong>Bidirectional Search</strong> ارائه می‌دهد؛ حالت نهایی یکتا نیست، چون آوار، سنگ‌ها و پل‌های غیرضروری می‌توانند بین جواب‌های معتبر متفاوت باشند.</td>
+                        </tr>
+                        <tr>
+                            <td><code>env.get_predecessors(state)</code></td>
+                            <td><code>List[Tuple[Action, DeepCoreState, int]]</code></td>
+                            <td>
+                                <strong>جستجوی معکوس در Bidirectional Search:</strong> لیستی از سه‌تایی‌های <code>(action, prev_state, step_cost)</code> برمی‌گرداند که با اجرای عمل در <code>prev_state</code> دقیقاً به <code>state</code> می‌رسیم. جستجوی پسرو باید از همه حالت‌های برگشتی <code>get_goal_states()</code> آغاز شود، با <code>get_predecessors</code> گسترش یابد و هنگام اتصال دو نیمه، عمل‌های نیمه پسرو را به ترتیب معکوسِ حرکت از نقطه تلاقی تا هدف به پاسخ اضافه کند.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- بخش ۴: الگوریتم‌های الزامی و سرفصل -->
+        <section class="section-card">
+            <h2 class="section-title">
+                <span class="section-num">۴</span>
+                الگوریتم‌های پیاده‌سازی پروژه (اصلی و امتیازی)
+            </h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>الگوریتم</th>
+                            <th>تابع در <code>solver.py</code></th>
+                            <th>دسته</th>
+                            <th>نکات الزامی پیاده‌سازی</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>BFS</strong></td>
+                            <td><code>breadth_first_search(env)</code></td>
+                            <td><span class="badge badge-given">ارائه شده (الگو)</span></td>
+                            <td>کد کامل در اختیارتان است تا نحوه پیمایش صف FIFO و ثبت متریک‌ها را مشاهده کنید.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>DFS</strong></td>
+                            <td><code>depth_first_search(env, max_expansions)</code></td>
+                            <td><span class="badge badge-core">اصلی</span></td>
+                            <td>جستجوی عمق اول گراف با پشته LIFO و بررسی مجموعه‌های تکراری (Cycle checking).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>IDS</strong></td>
+                            <td><code>iterative_deepening_search(env, max_depth)</code></td>
+                            <td><span class="badge badge-core">اصلی</span></td>
+                            <td>جستجوی عمیق‌کننده تکراری با افزایش لایه به لایه عمق مجاز از ۰ تا <code>max_depth</code>.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Bidirectional</strong></td>
+                            <td><code>bidirectional_search(env)</code></td>
+                            <td><span class="badge badge-core">اصلی</span></td>
+                            <td>توسعه همگام صف پیشرو با <code>get_successors</code> و صف معکوس با <code>get_predecessors</code> تا زمان تلاقی.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>UCS</strong></td>
+                            <td><code>uniform_cost_search(env)</code></td>
+                            <td><span class="badge badge-core">اصلی</span></td>
+                            <td>صف اولویت بر حسب هزینه مسیر $g(n)$. آزمون هدف باید هنگام پاپ شدن گره از صف انجام گیرد.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Greedy Best-First</strong></td>
+                            <td><code>greedy_best_first_search(env, heuristic)</code></td>
+                            <td><span class="badge badge-core">اصلی</span></td>
+                            <td>مرتب‌سازی صف اولویت منحصراً با مقدار هیوریستیک $f(n) = h(n)$.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>A* Search</strong></td>
+                            <td><code>a_star_search(env, heuristic)</code></td>
+                            <td><span class="badge badge-core">اصلی</span></td>
+                            <td>مرتب‌سازی صف با $f(n) = g(n) + h(n)$ و بازگشایی گره‌ها در صورت کشف مسیر کم‌هزینه‌تر.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>طراحی دو هیوریستیک</strong></td>
+                            <td><code>h1_basic</code> و <code>h2_advanced</code></td>
+                            <td><span class="badge badge-core">اصلی (در <code>heuristics.py</code>)</span></td>
+                            <td>طراحی دو تابع قابل قبول و سازگار که هیوریستیک منهتن ساده را مغلوب کنند.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Weighted A*</strong></td>
+                            <td><code>weighted_a_star_search(env, heuristic, weight)</code></td>
+                            <td><span class="badge badge-bonus">امتیازی</span></td>
+                            <td>مرتب‌سازی صف بر اساس $f(n) = g(n) + W \cdot h(n)$ برای $W > 1$ (مانند $W \in \{1.5, 2.0, 3.0\}$).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>IDA*</strong></td>
+                            <td><code>ida_star_search(env, heuristic, max_expansions)</code></td>
+                            <td><span class="badge badge-bonus">امتیازی</span></td>
+                            <td>جستجوی عمیق‌کننده تکراری با کران هزینه $f\text{-cost}$ و مصرف حافظه خطی.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>SMA*</strong></td>
+                            <td><code>sma_star_search(env, heuristic, memory_limit)</code></td>
+                            <td><span class="badge badge-bonus">امتیازی/اختیاری</span></td>
+                            <td>نسخه حافظه‌محدود A*؛ باید محدودیت حافظه، حذف کم‌امیدترین برگ و بازیابی مقدار backed-up را شفاف گزارش کنید. این بخش جایگزین الزامات اصلی نیست.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- بخش ۵: طراحی هیوریستیک با فرمول ریاضی رندرشده -->
+        <section class="section-card">
+            <h2 class="section-title">
+                <span class="section-num">۵</span>
+                طراحی علمی توابع هیوریستیک (فصل ۳ کتاب AIMA)
+            </h2>
+            <p>
+                تابع <code>h_naive_manhattan</code> ($H_0$) صرفاً فاصله منهتن ربات تا نزدیک‌ترین معدنچی را می‌سنجد. شما باید دو تابع زیر را با رعایت شرط <strong>قابل قبول بودن (Admissibility)</strong> و <strong>غلبه (Dominance)</strong> پیاده‌سازی کنید:
+            </p>
+            <div class="math-box">
+                $$0 \le H_0(s) \le H_1(s) \le H_2(s) \le h^*(s) \quad \forall s$$
+            </div>
+
+            <div class="callout callout-info">
+                <span class="callout-title">۱. ساختار هیوریستیک پایه: <code>h1_basic(state, env)</code> (درخت پوشا + جریمه قطعی بار کپسول)</span>
+                <p>
+                    <strong>الف) درخت پوشای کمینه (MST):</strong> حتی در فرضی که تمام خانه‌ها بدون مانع و دارای هزینه پایه ۱ باشند، ربات برای نجات همه معدنچیان و رسیدن به آسانسور $E$ حداقل باید به اندازه وزن درخت پوشای کمینه بر روی مجموعه رئوس زیر گام بردارد:
+                </p>
+                <div class="math-box">
+                    $$V = \{\text{state.bot\_pos}, \text{env.elevator\_pos}\} \cup \text{state.miners}$$
+                </div>
+                <p>
+                    <strong>ب) کران پایین جریمه بار کپسول:</strong> هر معدنچی که هم‌اکنون داخل کپسول است ($k = \text{state.carried}$)، در تمام گام‌های باقیمانده تا رسیدن به آسانسور حداقل به ازای هر گام $+2$ هزینه اضافی ایجاد می‌کند. علاوه بر آن، هر معدنچی منتظر $m \in \text{state.miners}$ نیز پس از سوار شدن، حداقل باید به اندازه فاصله منهتن خود تا آسانسور حمل شود و در هر گام $+2$ جریمه ایجاد نماید. حاصل جمع این مقادیر اکیداً قابل قبول (Admissible) است:
+                </p>
+                <div class="math-box">
+                    $$h_1(s) = \text{MST}_{\text{Manhattan}}(V) + 2 \cdot \text{carried} \cdot d_{\text{Man}}(\text{bot}, E) + \sum_{m \in \text{miners}} \Big( 2 \cdot d_{\text{Man}}(m, E) \Big)$$
+                </div>
+            </div>
+
+            <div class="callout callout-bonus">
+                <span class="callout-title">۲. ساختار هیوریستیک پیشرفته: <code>h2_advanced(state, env)</code> (فاصله واقعی دیوارها + شکستن سد + هرس بن‌بست)</span>
+                <p>
+                    این تابع باید بر $H_1$ غلبه کند ($H_2(s) \ge H_1(s)$) و شاخه‌های بزرگ درخت جستجو را در مراحل ۴ و ۵ حذف کند:
+                </p>
+                <ol>
+                    <li>
+                        <strong>فاصله‌های ژئودزیک واقعی (Wall-Aware Distances):</strong> به جای فاصله منهتن ساده که از میان دیوارهای سنگی (<code>#</code>) عبور فرضی می‌کند، یک بار با یک BFS سریع ماتریس کوتاه‌ترین فاصله واقعی میان تمام جفت‌خانه‌ها را با نادیده گرفتن موانع دینامیک محاسبه و کش کنید ($d_{\text{Wall}}$) و فرمول MST و جریمه بار را با $d_{\text{Wall}}$ محاسبه نمایید.
+                    </li>
+                    <li>
+                        <strong>هزینه افزایشی بازکردن مانع (Incremental Barrier Cost):</strong> فقط هزینه عملیاتیِ اجتناب‌ناپذیرِ عمل لازم برای بازکردن مانع را اضافه کنید: هزینه <code>PUSH</code> برای ساخت پل یا هزینه <code>DRILL</code> برای پاک‌کردن آوار. هزینه حرکت ربات روی خانه مبدأ یا مقصد، و هزینه حرکت روی پل، باید فقط یک‌بار در جزء فاصله/MST حساب شود؛ همان گام را دوباره به‌عنوان هزینه مانع اضافه نکنید. اگر امکان انتخاب مسیر یا مانع وجود دارد، کمینه هزینه لازم را بگیرید تا هیوریستیک بیش‌برآورد نکند.
+                    </li>
+                    <li>
+                        <strong>هرس بن‌بست‌های سنگین (Deadlock Detection):</strong> اگر پرتگاهی در مسیر باقی مانده باشد ولی تمامی تخته‌سنگ‌های آزاد در گوشه دو دیوار عمود بر هم قفل شده باشند و دیگر قابل حرکت نباشند، وضعیت حل‌ناپذیر است و تابع مقدار $\infty$ (یعنی <code>float('inf')</code>) برمی‌گرداند تا آن شاخه در همان لحظه هرس گردد.
+                    </li>
+                </ol>
+            </div>
+        </section>
+
+        <div class="callout callout-info" dir="rtl">
+            <span class="callout-title">پروتکل مقایسه و نمره‌دهی مستقل از سخت‌افزار</span>
+            <p>
+                مقایسه‌ی هیوریستیک‌ها روی هر پنج نقشه‌ی داخلی (<code>level1</code> تا <code>level5</code>) و با تنظیمات و ترتیب شکستن تساوی یکسان انجام می‌شود. معیارهای عملکردی عبارت‌اند از
+                <code>nodes_expanded</code>، تعداد گره‌های تولیدشده و <code>max_frontier_size</code> یا بیشینه‌ی حافظه‌ی جستجو. ابتدا حل‌شدن، اعتبار مسیر، برابری هزینه‌ی A* و UCS، قابل قبول بودن و غلبه‌ی هیوریستیک بررسی می‌شود؛ سپس کاهش متریک‌ها نسبت به خط مبنا با میانگین حسابیِ پنج نقشه گزارش می‌گردد. هیچ آستانه‌ی زمانی یا درصد ثابت، شرط قبولی یا نمره‌ی مستقل نیست. زمان اجرا فقط برای مشاهده‌ی غیرنمره‌ای مجاز است.
+            </p>
+        </div>
+
+        <!-- بخش ۶: بارم‌بندی و تحویل -->
+        <section class="section-card">
+            <h2 class="section-title">
+                <span class="section-num">۶</span>
+                بارم‌بندی تفصیلی پروژه (۱۰۰ نمره اصلی + حداقل ۳۰ نمره امتیازی)
+            </h2>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>بخش</th>
+                            <th>عنوان آزمون و پیاده‌سازی</th>
+                            <th>نمره</th>
+                            <th>معیار قبولی</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td rowspan="3"><strong>جستجوی ناآگاهانه (۳۵ نمره)</strong></td>
+                            <td>پیاده‌سازی <strong>DFS</strong> و <strong>IDS</strong></td>
+                            <td><strong>۱۲</strong></td>
+                            <td>مدیریت پشته و جلوگیری از دور؛ یافتن مسیر با کمترین تعداد گام در IDS.</td>
+                        </tr>
+                        <tr>
+                            <td>پیاده‌سازی <strong>Bidirectional Search</strong></td>
+                            <td><strong>۱۳</strong></td>
+                            <td>بسط متقارن و الحاق درست مسیرهای پیشرو و معکوس در نقطه تلاقی.</td>
+                        </tr>
+                        <tr>
+                            <td>پیاده‌سازی <strong>Uniform Cost Search (UCS)</strong></td>
+                            <td><strong>۱۰</strong></td>
+                            <td>یافتن هزینه بهینه و کمینه بودن هزینه مسیر نسبت به BFS در تمامی مراحل.</td>
+                        </tr>
+                        <tr>
+                            <td rowspan="4"><strong>جستجوی آگاهانه و تست (۴۵ نمره)</strong></td>
+                            <td>پیاده‌سازی <strong>Greedy Best-First</strong> و موتور <strong>A* Search</strong></td>
+                            <td><strong>۱۵</strong></td>
+                            <td>عملکرد بدون باگ صف اولویت و انطباق کامل هزینه بهینه A* با UCS.</td>
+                        </tr>
+                        <tr>
+                            <td>پیاده‌سازی هیوریستیک اول (<code>h1_basic</code>)</td>
+                            <td><strong>۱۲</strong></td>
+                            <td>قابل قبول و سازگار بودن با استدلال روشن؛ سپس گزارش کاهش تعداد گره‌های بسط‌یافته نسبت به $H_0$ روی هر پنج نقشه و میانگین/میانه مشخص آن. درصد ثابت ۵۰٪ شرط قبولی نیست.</td>
+                        </tr>
+                        <tr>
+                            <td>پیاده‌سازی هیوریستیک پیشرفته (<code>h2_advanced</code>)</td>
+                            <td><strong>۱۳</strong></td>
+                            <td>قابل قبول و سازگار بودن، اثبات غلبه ($H_2 \ge H_1$)، برابری هزینه جواب A* و UCS، و بهبود تعداد بسط‌ها و بیشینه فرانتیر نسبت به $H_1$ روی هر پنج نقشه. زمان اجرا نمره ندارد.</td>
+                        </tr>
+                        <tr>
+                            <td>تکمیل و پاس شدن تست‌ها در <code>test_search.py</code></td>
+                            <td><strong>۵</strong></td>
+                            <td>پاس شدن موفق تمام ۷ تست آزمون واحد با دستور <code>python test_search.py</code>.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>گزارش تحلیلی (۲۰ نمره)</strong></td>
+                            <td>فایل <code>Report.pdf</code> شامل جداول و اثبات‌ها</td>
+                            <td><strong>۲۰</strong></td>
+                            <td>اثبات ریاضی Admissibility و Consistency توابع هیوریستیک همراه با مقایسه تجربی متریک‌ها.</td>
+                        </tr>
+                        <tr style="background-color: #f5f3ff;">
+                            <td rowspan="3"><strong style="color: var(--accent-purple);">بخش امتیازی (حداقل ۳۰+ نمره)</strong></td>
+                            <td>پیاده‌سازی <strong>Weighted A*</strong> و تحلیل پارامتر $W$</td>
+                            <td><strong style="color: var(--accent-purple);">۱۰+</strong></td>
+                            <td>بررسی مصالحه سرعت و کیفیت جواب به ازای $W \in \{1.5, 2.0, 3.0\}$.</td>
+                        </tr>
+                        <tr style="background-color: #f5f3ff;">
+                            <td>پیاده‌سازی <strong>IDA*</strong></td>
+                            <td><strong style="color: var(--accent-purple);">۱۰+</strong></td>
+                            <td>بررسی بهینگی و کاهش چشمگیر بیشینه اندازه حافظه فرانتیر در مقایسه با A*.</td>
+                        </tr>
+                        <tr style="background-color: #f5f3ff;">
+                            <td>پیاده‌سازی <strong>SMA*</strong></td>
+                            <td><strong style="color: var(--accent-purple);">۱۰+</strong></td>
+                            <td>مدیریت سقف حافظه، حذف کم‌امیدترین برگ، بازگشت مقدار backed-up و گزارش اثر محدودیت حافظه با <code>max_frontier_size</code>.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="callout callout-danger">
+                <span class="callout-title">⚠️ معیار کلیدی تصحیح خودکار برای هیوریستیک‌ها</span>
+                <p>
+                    اگر تابع هیوریستیک شما در هر حالتی هزینه را <strong>بیش‌تخمین (Overestimate)</strong> بزند (یعنی $h(n) > h^*(n)$ باشد)، الگوریتم A* جواب زیربهینه تولید خواهد کرد و نمره بخش هیوریستیک صفر منظور خواهد شد. برای اطمینان، همواره هزینه خروجی A* را با هزینه UCS که مرجع بهینه است مقایسه کنید.
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- اسکریپت بارگذاری هوشمند تصاویر با اسامی چندگانه -->
+    <script>
+        (function resolveGameSprites() {
+            const spriteMap = {
+                "drill_vehicle": [
+                    "../assets/drill_vehicle.png", "drill_vehicle.png",
+                    "../assets/drill_vehicle_2.png", "drill_vehicle_2.png",
+                    "../assets/bot.png", "bot.png"
+                ],
+                "miner": [
+                    "../assets/miner.png", "miner.png",
+                    "../assets/miner_2.png", "miner_2.png"
+                ],
+                "teleporter_pad": [
+                    "../assets/teleporter_pad.png", "teleporter_pad.png",
+                    "../assets/teleporter_pad_2.png", "teleporter_pad_2.png",
+                    "../assets/elevator.png", "elevator.png"
+                ],
+                "boulder": [
+                    "../assets/boulder.png", "boulder.png",
+                    "../assets/boulder_2.png", "boulder_2.png"
+                ],
+                "pit": [
+                    "../assets/pit.png", "pit.png",
+                    "../assets/pit_2.png", "pit_2.png",
+                    "../assets/chasm.png", "chasm.png"
+                ],
+                "bridge": [
+                    "../assets/bridge.png", "bridge.png",
+                    "../assets/bridge_2.png", "bridge_2.png"
+                ],
+                "toxic_slime": [
+                    "../assets/toxic_slime.png", "toxic_slime.png",
+                    "../assets/toxic_slime_2.png", "toxic_slime_2.png",
+                    "../assets/sludge.png", "sludge.png"
+                ],
+                "ore_rubble": [
+                    "../assets/ore_rubble.png", "ore_rubble.png",
+                    "../assets/ore_rubble_2.png", "ore_rubble_2.png",
+                    "../assets/rubble.png", "rubble.png"
+                ],
+                "rock_wall": [
+                    "../assets/rock_wall.png", "rock_wall.png",
+                    "../assets/rock_wall_2.png", "rock_wall_2.png",
+                    "../assets/wall.png", "wall.png"
+                ],
+                "icon_grid": [
+                    "../assets/Sci-Fi Mining Rescue Icon Grid.png", "Sci-Fi Mining Rescue Icon Grid.png",
+                    "../assets/Sci-Fi Mining Rescue Icon Grid_2.png", "Sci-Fi Mining Rescue Icon Grid_2.png"
+                ]
+            };
+
+            document.querySelectorAll("img[data-sprite]").forEach((img) => {
+                const key = img.getAttribute("data-sprite");
+                const candidates = spriteMap[key] || [];
+                let idx = 0;
+
+                img.onerror = function () {
+                    idx += 1;
+                    if (idx < candidates.length) {
+                        img.src = candidates[idx];
+                    }
+                };
+            });
+        })();
+    </script>
+</body>
+</html>

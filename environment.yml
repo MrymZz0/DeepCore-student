@@ -1,0 +1,12 @@
+
+name: deepcore
+
+channels:
+  - conda-forge
+  - nodefaults
+
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - "pygame-ce>=2.5.6"
