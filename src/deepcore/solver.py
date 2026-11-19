@@ -107,9 +107,47 @@ def _timed(fn):
         return metrics
     return wrapper
 
+@_timed
 def depth_first_search(env: DeepCoreEnv, max_expansions: Optional[int] = None) -> Optional[SearchMetrics]:
-    """TODO: Implement Depth-First Graph Search using a LIFO Stack."""
-    raise NotImplementedError
+    metrics = SearchMetrics(algorithm_name="DFS")
+    start = env.get_initial_state()
+    if env.is_goal(start):
+        metrics.solved = True
+        metrics.status_message = "Start state is already a goal."
+        return metrics
+
+    stack: List[Tuple[DeepCoreState, "_Node", int]] = [(start, None, 0)]
+    explored: Set[DeepCoreState] = set()
+
+    while stack:
+        metrics.max_frontier_size = max(metrics.max_frontier_size, len(stack))
+        metrics.max_memory_size = max(metrics.max_memory_size, len(stack) + len(explored))
+        state, node, g = stack.pop()
+        if state in explored:
+            continue
+
+        if max_expansions is not None and metrics.nodes_expanded >= max_expansions:
+            metrics.status_message = f"DFS stopped: expansion budget ({max_expansions}) exhausted."
+            return metrics
+
+        explored.add(state)
+        metrics.nodes_expanded += 1
+        metrics.explored_order.append(state.bot_pos)
+
+        for action, child, step_cost in reversed(env.get_successors(state)):
+            metrics.nodes_generated += 1
+            if child in explored:
+                continue
+            child_node = (action.value, node)
+            if env.is_goal(child):
+                metrics.solved = True
+                metrics.solution_actions = _actions_from_node(child_node)
+                metrics.total_cost = g + step_cost
+                return metrics
+            stack.append((child, child_node, g + step_cost))
+
+    metrics.status_message = "No solution found."
+    return metrics
 
 
 def iterative_deepening_search(
