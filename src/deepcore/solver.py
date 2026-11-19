@@ -84,6 +84,29 @@ def breadth_first_search(env: DeepCoreEnv) -> Optional[SearchMetrics]:
 # =============================================================================
 # 2. Depth-First Search (DFS) & Iterative Deepening Search (IDS) — [STUDENT TODO]
 # =============================================================================
+INF = math.inf
+_Node = Optional[Tuple[str, "_Node"]]
+
+
+def _actions_from_node(node: "_Node") -> List[str]:
+    actions: List[str] = []
+    while node is not None:
+        actions.append(node[0])
+        node = node[1]
+    actions.reverse()
+    return actions
+
+
+def _timed(fn):
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        t0 = time.perf_counter()
+        metrics = fn(*args, **kwargs)
+        if metrics is not None:
+            metrics.runtime_sec = time.perf_counter() - t0
+        return metrics
+    return wrapper
+
 def depth_first_search(env: DeepCoreEnv, max_expansions: Optional[int] = None) -> Optional[SearchMetrics]:
     """TODO: Implement Depth-First Graph Search using a LIFO Stack."""
     raise NotImplementedError
