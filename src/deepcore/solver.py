@@ -12,7 +12,8 @@ from collections import deque
 import heapq
 import math
 from typing import Callable, Dict, List, Optional, Set, Tuple
-
+import functools
+import time
 from .environment import DeepCoreEnv
 from .state import DeepCoreState, SearchMetrics
 
@@ -150,13 +151,68 @@ def depth_first_search(env: DeepCoreEnv, max_expansions: Optional[int] = None) -
     return metrics
 
 
+@_timed
 def iterative_deepening_search(
     env: DeepCoreEnv,
     max_depth: Optional[int] = None,
     max_expansions: Optional[int] = None,
 ) -> Optional[SearchMetrics]:
-    """TODO: Implement Iterative Deepening Search (IDS)."""
-    raise NotImplementedError
+
+    metrics = SearchMetrics(algorithm_name="IDS")
+    start = env.get_initial_state()
+    if env.is_goal(start):
+        metrics.solved = True
+        metrics.status_message = "Start state is already a goal."
+        return metrics
+
+    limit = 0
+    while max_depth is None or limit <= max_depth:
+        best_depth: Dict[DeepCoreState, int] = {}
+        stack: List[Tuple[DeepCoreState, int, "_Node", int]] = [(start, 0, None, 0)]
+        cutoff = False
+
+        while stack:
+            metrics.max_frontier_size = max(metrics.max_frontier_size, len(stack))
+            metrics.max_memory_size = max(metrics.max_memory_size, len(stack) + len(best_depth))
+            state, depth, node, g = stack.pop()
+
+            seen_depth = best_depth.get(state)
+            if seen_depth is not None and seen_depth <= depth:
+                continue
+            best_depth[state] = depth
+
+            if max_expansions is not None and metrics.nodes_expanded >= max_expansions:
+                metrics.status_message = f"IDS stopped: expansion budget ({max_expansions}) exhausted."
+                return metrics
+
+            metrics.nodes_expanded += 1
+            metrics.explored_order.append(state.bot_pos)
+
+            if env.is_goal(state):
+                metrics.solved = True
+                metrics.solution_actions = _actions_from_node(node)
+                metrics.total_cost = g
+                metrics.status_message = f"Solved at depth limit {limit}."
+                return metrics
+
+            if depth == limit:
+                if not cutoff and env.get_legal_actions(state):
+                    cutoff = True
+                continue
+
+            for action, child, step_cost in reversed(env.get_successors(state)):
+                metrics.nodes_generated += 1
+                prev = best_depth.get(child)
+                if prev is None or prev > depth + 1:
+                    stack.append((child, depth + 1, (action.value, node), g + step_cost))
+
+        if not cutoff:
+            metrics.status_message = "No solution found (state space exhausted)."
+            return metrics
+        limit += 1
+
+    metrics.status_message = f"No solution within max_depth={max_depth}."
+    return metrics
 
 
 # =============================================================================
