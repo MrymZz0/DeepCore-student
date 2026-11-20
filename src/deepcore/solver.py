@@ -218,12 +218,134 @@ def iterative_deepening_search(
 # =============================================================================
 # 3. Bidirectional Search — [STUDENT TODO]
 # =============================================================================
+def _backward_seed_states(env: DeepCoreEnv) -> List[DeepCoreState]:
+    seeds: List[DeepCoreState] = list(env.get_goal_states())
+    seen: Set[DeepCoreState] = set(seeds)
+    chasms = sorted(env.initial_chasms)
+    boulders = sorted(env.initial_boulders)
+    rubble_options = [frozenset(env.initial_rubble), frozenset()]
+    budget = 400
+
+    for k in range(0, min(len(chasms), len(boulders)) + 1):
+        for filled in itertools.combinations(chasms, k):
+            for used in itertools.combinations(boulders, k):
+                for rub in rubble_options:
+                    if len(seeds) >= budget:
+                        return seeds
+                    cand = DeepCoreState(
+                        bot_pos=env.elevator_pos,
+                        carried=env.total_miners,
+                        boulders=frozenset(env.initial_boulders) - frozenset(used),
+                        chasms=frozenset(env.initial_chasms) - frozenset(filled),
+                        rubble=rub,
+                        miners=frozenset(),
+                    )
+                    if cand not in seen and env.is_goal(cand):
+                        seen.add(cand)
+                        seeds.append(cand)
+    return seeds
+
+
+@_timed
 def bidirectional_search(env: DeepCoreEnv) -> Optional[SearchMetrics]:
-    """
-    TODO: Implement Bidirectional Search expanding forward from `env.get_initial_state()`
-    via `env.get_successors(s)` and backward from `env.get_goal_states()` via `env.get_predecessors(s)`.
-    """
-    raise NotImplementedError
+
+    metrics = SearchMetrics(algorithm_name="Bidirectional")
+    start = env.get_initial_state()
+    if env.is_goal(start):
+        metrics.solved = True
+        metrics.status_message = "Start state is already a goal."
+        return metrics
+
+    Parent = Dict[DeepCoreState, Tuple[Optional[DeepCoreState], Optional[str]]]
+    fwd_parent: Parent = {start: (None, None)}
+    fwd_g: Dict[DeepCoreState, int] = {start: 0}
+    fwd_d: Dict[DeepCoreState, int] = {start: 0}
+    bwd_parent: Parent = {}
+    bwd_g: Dict[DeepCoreState, int] = {}
+    bwd_d: Dict[DeepCoreState, int] = {}
+
+    fwd_layer: List[DeepCoreState] = [start]
+    bwd_layer: List[DeepCoreState] = []
+    for goal in _backward_seed_states(env):
+        if goal not in bwd_parent:
+            bwd_parent[goal] = (None, None)
+            bwd_g[goal] = 0
+            bwd_d[goal] = 0
+            bwd_layer.append(goal)
+
+    def build(meeting: DeepCoreState) -> None:
+        actions: List[str] = []
+        cur = meeting
+        while True:
+            prev, act = fwd_parent[cur]
+            if prev is None:
+                break
+            actions.append(act)
+            cur = prev
+        actions.reverse()
+        cur = meeting
+        while True:
+            nxt, act = bwd_parent[cur]
+            if nxt is None:
+                break
+            actions.append(act)
+            cur = nxt
+        metrics.solved = True
+        metrics.solution_actions = actions
+        metrics.total_cost = fwd_g[meeting] + bwd_g[meeting]
+
+    if start in bwd_parent:
+        build(start)
+        return metrics
+
+    while fwd_layer and bwd_layer:
+        metrics.max_frontier_size = max(metrics.max_frontier_size, len(fwd_layer) + len(bwd_layer))
+        metrics.max_memory_size = max(metrics.max_memory_size, len(fwd_parent) + len(bwd_parent))
+
+        forward = len(fwd_layer) <= len(bwd_layer)
+        layer = fwd_layer if forward else bwd_layer
+        this_parent, this_g, this_d = (fwd_parent, fwd_g, fwd_d) if forward else (bwd_parent, bwd_g, bwd_d)
+        other_parent = bwd_parent if forward else fwd_parent
+
+        next_layer: List[DeepCoreState] = []
+        best_meeting: Optional[DeepCoreState] = None
+        best_key: Tuple[float, float] = (INF, INF)
+
+        for state in layer:
+            metrics.nodes_expanded += 1
+            metrics.explored_order.append(state.bot_pos)
+            moves = env.get_successors(state) if forward else env.get_predecessors(state)
+            for action, other, step_cost in moves:
+                metrics.nodes_generated += 1
+                if other in this_parent:
+                    continue
+                this_parent[other] = (state, action.value)
+                this_g[other] = this_g[state] + step_cost
+                this_d[other] = this_d[state] + 1
+                next_layer.append(other)
+
+                if forward and other not in other_parent and env.is_goal(other):
+                    bwd_parent[other] = (None, None)
+                    bwd_g[other] = 0
+                    bwd_d[other] = 0
+                if other in other_parent:
+                    key = (fwd_d[other] + bwd_d[other], fwd_g[other] + bwd_g[other])
+                    if key < best_key:
+                        best_key = key
+                        best_meeting = other
+
+        metrics.max_memory_size = max(metrics.max_memory_size, len(fwd_parent) + len(bwd_parent))
+        if best_meeting is not None:
+            build(best_meeting)
+            return metrics
+
+        if forward:
+            fwd_layer = next_layer
+        else:
+            bwd_layer = next_layer
+
+    metrics.status_message = "No solution found (one search space exhausted)."
+    return metrics
 
 
 # =============================================================================
