@@ -7,7 +7,7 @@ Student implementation file for DeepCore search algorithms.
 - Implement the remaining required algorithms. Do not change the public
   function signatures or the environment/state modules.
 """
-
+import itertools
 from collections import deque
 import heapq
 import math
@@ -351,9 +351,48 @@ def bidirectional_search(env: DeepCoreEnv) -> Optional[SearchMetrics]:
 # =============================================================================
 # 4. Uniform Cost Search (UCS) — [STUDENT TODO]
 # =============================================================================
+@_timed
 def uniform_cost_search(env: DeepCoreEnv) -> Optional[SearchMetrics]:
-    """TODO: Implement Uniform Cost Search ordering the priority queue by path cost g(n)."""
-    raise NotImplementedError
+
+    metrics = SearchMetrics(algorithm_name="UCS")
+    start = env.get_initial_state()
+    counter = itertools.count()
+
+    best_g: Dict[DeepCoreState, int] = {start: 0}
+    parent: Dict[DeepCoreState, Tuple[Optional[DeepCoreState], Optional[str]]] = {start: (None, None)}
+    closed: Set[DeepCoreState] = set()
+    heap: List[Tuple[int, int, DeepCoreState]] = [(0, next(counter), start)]
+
+    while heap:
+        metrics.max_frontier_size = max(metrics.max_frontier_size, len(best_g) - len(closed))
+        metrics.max_memory_size = max(metrics.max_memory_size, len(best_g))
+
+        g, _, state = heapq.heappop(heap)
+        if state in closed or g > best_g[state]:
+            continue
+
+        if env.is_goal(state):
+            metrics.solved = True
+            metrics.solution_actions = _reconstruct_path(parent, state)
+            metrics.total_cost = g
+            return metrics
+
+        closed.add(state)
+        metrics.nodes_expanded += 1
+        metrics.explored_order.append(state.bot_pos)
+
+        for action, child, step_cost in env.get_successors(state):
+            metrics.nodes_generated += 1
+            new_g = g + step_cost
+            old_g = best_g.get(child)
+            if old_g is not None and new_g >= old_g:
+                continue
+            best_g[child] = new_g
+            parent[child] = (state, action.value)
+            heapq.heappush(heap, (new_g, next(counter), child))
+
+    metrics.status_message = "No solution found."
+    return metrics
 
 
 # =============================================================================
