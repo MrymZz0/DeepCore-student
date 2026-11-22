@@ -611,13 +611,92 @@ def weighted_a_star_search(
 # =============================================================================
 # BONUS 2: Iterative Deepening A* (IDA*) — [STUDENT BONUS TODO]
 # =============================================================================
+@_timed
 def ida_star_search(
     env: DeepCoreEnv,
     heuristic: Callable[[DeepCoreState, DeepCoreEnv], float],
     max_expansions: Optional[int] = None,
 ) -> Optional[SearchMetrics]:
-    """TODO (Bonus): Implement Iterative Deepening A* (IDA*) using f-cost threshold contours."""
-    raise NotImplementedError
+    """
+    IDA*: repeated depth-first contours bounded by f = g + h <= threshold; the next
+    threshold is the smallest f that exceeded the current one.
+
+    Because the same state is reachable by very many commuting move orders, each
+    contour keeps a transposition table {state: lowest g seen in this contour}; a state is
+    skipped if it is reached again with g >= the stored value. The table is thrown away
+    after every contour, so memory is bounded by one contour (still far smaller than
+    A*'s closed list on the early contours).
+    """
+    metrics = SearchMetrics(algorithm_name="IDA*")
+    start = env.get_initial_state()
+    h_cache: Dict[DeepCoreState, float] = {}
+
+    def h_of(s: DeepCoreState) -> float:
+        v = h_cache.get(s)
+        if v is None:
+            v = heuristic(s, env)
+            h_cache[s] = v
+        return v
+
+    threshold = h_of(start)
+    if threshold == INF:
+        metrics.status_message = "Start state judged unsolvable by the heuristic."
+        return metrics
+
+    while True:
+        table: Dict[DeepCoreState, int] = {}
+        next_threshold = INF
+        stack: List[Tuple[DeepCoreState, int, "_Node"]] = [(start, 0, None)]
+
+        while stack:
+            metrics.max_frontier_size = max(metrics.max_frontier_size, len(stack))
+            metrics.max_memory_size = max(metrics.max_memory_size, len(stack) + len(table))
+            state, g, node = stack.pop()
+
+            known = table.get(state)
+            if known is not None and known <= g:
+                continue
+            f = g + h_of(state)
+            if f > threshold:
+                if f < next_threshold:
+                    next_threshold = f
+                continue
+            table[state] = g
+
+            if env.is_goal(state):
+                metrics.solved = True
+                metrics.solution_actions = _actions_from_node(node)
+                metrics.total_cost = g
+                metrics.status_message = f"Solved within f-threshold {threshold:g}."
+                return metrics
+
+            if max_expansions is not None and metrics.nodes_expanded >= max_expansions:
+                metrics.status_message = f"IDA* stopped: expansion budget ({max_expansions}) exhausted."
+                return metrics
+
+            metrics.nodes_expanded += 1
+            metrics.explored_order.append(state.bot_pos)
+
+            children = []
+            for action, child, step_cost in env.get_successors(state):
+                metrics.nodes_generated += 1
+                new_g = g + step_cost
+                k = table.get(child)
+                if k is not None and k <= new_g:
+                    continue
+                hc = h_of(child)
+                if hc == INF:
+                    continue
+                children.append((new_g + hc, hc, action.value, child, new_g))
+            # push worst-first so that the most promising child is popped first
+            children.sort(key=lambda t: (t[0], t[1]), reverse=True)
+            for _, _, act_name, child, new_g in children:
+                stack.append((child, new_g, (act_name, node)))
+
+        if next_threshold == INF:
+            metrics.status_message = "No solution found (all contours exhausted)."
+            return metrics
+        threshold = next_threshold
 
 
 # =============================================================================
