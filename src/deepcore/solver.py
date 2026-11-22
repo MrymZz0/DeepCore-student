@@ -458,11 +458,74 @@ def greedy_best_first_search(
 # =============================================================================
 # 6. A* Search — [STUDENT TODO]
 # =============================================================================
+@_timed
 def a_star_search(
     env: DeepCoreEnv, heuristic: Callable[[DeepCoreState, DeepCoreEnv], float]
 ) -> Optional[SearchMetrics]:
-    """TODO: Implement A* Graph Search ordering the priority queue by f(n) = g(n) + h(n)."""
-    raise NotImplementedError
+    """
+    A* Graph Search with f(n) = g(n) + h(n). Optimal when h is admissible.
+    Heap entries are (f, h, counter, g, state): ties on f are broken by the smaller h
+    (deeper nodes first). A state that is reached again with a smaller g is re-opened, so the
+    result stays optimal even if h were not consistent. Children with h = inf are pruned.
+    """
+    metrics = SearchMetrics(algorithm_name="A*")
+    start = env.get_initial_state()
+    counter = itertools.count()
+
+    h_cache: Dict[DeepCoreState, float] = {}
+
+    def h_of(s: DeepCoreState) -> float:
+        v = h_cache.get(s)
+        if v is None:
+            v = heuristic(s, env)
+            h_cache[s] = v
+        return v
+
+    start_h = h_of(start)
+    if start_h == INF:
+        metrics.status_message = "Start state judged unsolvable by the heuristic."
+        return metrics
+
+    best_g: Dict[DeepCoreState, int] = {start: 0}
+    parent: Dict[DeepCoreState, Tuple[Optional[DeepCoreState], Optional[str]]] = {start: (None, None)}
+    closed: Set[DeepCoreState] = set()
+    heap: List[Tuple[float, float, int, int, DeepCoreState]] = [(start_h, start_h, next(counter), 0, start)]
+
+    while heap:
+        metrics.max_frontier_size = max(metrics.max_frontier_size, len(best_g) - len(closed))
+        metrics.max_memory_size = max(metrics.max_memory_size, len(best_g))
+
+        _, _, _, g, state = heapq.heappop(heap)
+        if state in closed or g > best_g[state]:
+            continue  # stale heap entry
+
+        if env.is_goal(state):
+            metrics.solved = True
+            metrics.solution_actions = _reconstruct_path(parent, state)
+            metrics.total_cost = g
+            return metrics
+
+        closed.add(state)
+        metrics.nodes_expanded += 1
+        metrics.explored_order.append(state.bot_pos)
+
+        for action, child, step_cost in env.get_successors(state):
+            metrics.nodes_generated += 1
+            new_g = g + step_cost
+            old_g = best_g.get(child)
+            if old_g is not None:
+                if new_g >= old_g:
+                    continue
+                closed.discard(child)  # cheaper route found: re-open
+            h = h_of(child)
+            if h == INF:
+                continue
+            best_g[child] = new_g
+            parent[child] = (state, action.value)
+            heapq.heappush(heap, (new_g + h, h, next(counter), new_g, child))
+
+    metrics.status_message = "No solution found."
+    return metrics
 
 
 # =============================================================================
