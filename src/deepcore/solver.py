@@ -531,13 +531,81 @@ def a_star_search(
 # =============================================================================
 # BONUS 1: Weighted A* Search — [STUDENT BONUS TODO]
 # =============================================================================
+@_timed
 def weighted_a_star_search(
     env: DeepCoreEnv,
     heuristic: Callable[[DeepCoreState, DeepCoreEnv], float],
     weight: float = 1.5,
 ) -> Optional[SearchMetrics]:
-    """TODO (Bonus): Implement Weighted A* ordering the frontier by f(n) = g(n) + W * h(n)."""
-    raise NotImplementedError
+    """
+    Weighted A*: f(n) = g(n) + W*h(n) with W >= 1. The returned cost is at most W times the
+    optimal cost (for an admissible h); larger W usually expands fewer nodes. Same structure
+    as A* (re-opening of states reached more cheaply, pruning of h = inf children).
+    """
+    if weight < 1.0:
+        weight = 1.0
+    metrics = SearchMetrics(algorithm_name=f"WA*(W={weight:g})")
+    start = env.get_initial_state()
+    counter = itertools.count()
+
+    h_cache: Dict[DeepCoreState, float] = {}
+
+    def h_of(s: DeepCoreState) -> float:
+        v = h_cache.get(s)
+        if v is None:
+            v = heuristic(s, env)
+            h_cache[s] = v
+        return v
+
+    start_h = h_of(start)
+    if start_h == INF:
+        metrics.status_message = "Start state judged unsolvable by the heuristic."
+        return metrics
+
+    best_g: Dict[DeepCoreState, int] = {start: 0}
+    parent: Dict[DeepCoreState, Tuple[Optional[DeepCoreState], Optional[str]]] = {start: (None, None)}
+    closed: Set[DeepCoreState] = set()
+    heap: List[Tuple[float, float, int, int, DeepCoreState]] = [
+        (weight * start_h, start_h, next(counter), 0, start)
+    ]
+
+    while heap:
+        metrics.max_frontier_size = max(metrics.max_frontier_size, len(best_g) - len(closed))
+        metrics.max_memory_size = max(metrics.max_memory_size, len(best_g))
+
+        _, _, _, g, state = heapq.heappop(heap)
+        if state in closed or g > best_g[state]:
+            continue
+
+        if env.is_goal(state):
+            metrics.solved = True
+            metrics.solution_actions = _reconstruct_path(parent, state)
+            metrics.total_cost = g
+            return metrics
+
+        closed.add(state)
+        metrics.nodes_expanded += 1
+        metrics.explored_order.append(state.bot_pos)
+
+        for action, child, step_cost in env.get_successors(state):
+            metrics.nodes_generated += 1
+            new_g = g + step_cost
+            old_g = best_g.get(child)
+            if old_g is not None:
+                if new_g >= old_g:
+                    continue
+                closed.discard(child)
+            h = h_of(child)
+            if h == INF:
+                continue
+            best_g[child] = new_g
+            parent[child] = (state, action.value)
+            heapq.heappush(heap, (new_g + weight * h, h, next(counter), new_g, child))
+
+    metrics.status_message = "No solution found."
+    return metrics
+
+
 
 
 # =============================================================================
