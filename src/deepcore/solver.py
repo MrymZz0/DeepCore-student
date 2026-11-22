@@ -398,11 +398,61 @@ def uniform_cost_search(env: DeepCoreEnv) -> Optional[SearchMetrics]:
 # =============================================================================
 # 5. Greedy Best-First Search (GBFS) — [STUDENT TODO]
 # =============================================================================
+@_timed
 def greedy_best_first_search(
     env: DeepCoreEnv, heuristic: Callable[[DeepCoreState, DeepCoreEnv], float]
 ) -> Optional[SearchMetrics]:
-    """TODO: Implement Greedy Best-First Search ordering the priority queue strictly by h(n)."""
-    raise NotImplementedError
+    """
+    Greedy Best-First Search: order the frontier strictly by h(n), ignoring g(n).
+    Fast, but neither optimal nor guaranteed to find a cheap plan. A state is accepted the
+    first time it is discovered (no re-opening). Children with h = inf (proven dead ends)
+    are pruned.
+    """
+    metrics = SearchMetrics(algorithm_name="GBFS")
+    start = env.get_initial_state()
+    counter = itertools.count()
+
+    start_h = heuristic(start, env)
+    if start_h == INF:
+        metrics.status_message = "Start state judged unsolvable by the heuristic."
+        return metrics
+
+    # state -> g of the path through which it was discovered (also acts as the "seen" set)
+    g_of: Dict[DeepCoreState, int] = {start: 0}
+    parent: Dict[DeepCoreState, Tuple[Optional[DeepCoreState], Optional[str]]] = {start: (None, None)}
+    heap: List[Tuple[float, int, DeepCoreState]] = [(start_h, next(counter), start)]
+    expanded = 0  # states already popped; frontier = discovered - expanded
+
+    while heap:
+        metrics.max_frontier_size = max(metrics.max_frontier_size, len(g_of) - expanded)
+        metrics.max_memory_size = max(metrics.max_memory_size, len(g_of))
+
+        _, _, state = heapq.heappop(heap)
+
+        if env.is_goal(state):
+            metrics.solved = True
+            metrics.solution_actions = _reconstruct_path(parent, state)
+            metrics.total_cost = g_of[state]
+            return metrics
+
+        expanded += 1
+        metrics.nodes_expanded += 1
+        metrics.explored_order.append(state.bot_pos)
+
+        for action, child, step_cost in env.get_successors(state):
+            metrics.nodes_generated += 1
+            if child in g_of:
+                continue
+            h = heuristic(child, env)
+            if h == INF:
+                continue
+            g_of[child] = g_of[state] + step_cost
+            parent[child] = (state, action.value)
+            heapq.heappush(heap, (h, next(counter), child))
+
+    metrics.status_message = "No solution found."
+    return metrics
+
 
 
 # =============================================================================
