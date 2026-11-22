@@ -702,10 +702,216 @@ def ida_star_search(
 # =============================================================================
 # BONUS 3: Simplified Memory-Bounded A* (SMA*) — [STUDENT BONUS TODO]
 # =============================================================================
+class _SMANode:
+    """One node of the SMA* search tree (a *tree*, so a state may appear several times)."""
+
+    __slots__ = ("state", "parent", "action", "g", "f", "depth", "children", "forgotten", "alive", "ver", "uid")
+
+    def __init__(self, state, parent, action, g, f, depth, uid):
+        self.state = state
+        self.parent = parent
+        self.action = action
+        self.g = g
+        self.f = f                  # backed-up f value
+        self.depth = depth
+        self.children: Dict[str, "_SMANode"] = {}   # successors currently in memory
+        self.forgotten: Dict[str, float] = {}       # action -> f of a successor that was deleted
+        self.alive = True
+        self.ver = 0                # lazy-deletion version for the two heaps
+        self.uid = uid
+
+
+_SMA_DEFAULT_MEMORY = 20000
+_SMA_MAX_EXPANSIONS = 400_000     # safety net so a thrashing run (memory far too small) always terminates
+
+
+@_timed
 def sma_star_search(
     env: DeepCoreEnv,
     heuristic: Callable[[DeepCoreState, DeepCoreEnv], float],
     memory_limit: Optional[int] = None,
 ) -> Optional[SearchMetrics]:
-    """TODO (Bonus): Implement Simplified Memory-Bounded A* (SMA*)."""
-    raise NotImplementedError
+    """
+    SMA*: A* that never keeps more than `memory_limit` search-tree nodes.
+
+    * Always expand the best leaf (lowest f, deepest on ties). All its successors are added;
+      each child gets f = max(f(parent), g + h) (path-max).
+    * When memory is full, delete the *worst* leaf (highest f, shallowest on ties). Its f is
+      remembered in the parent's `forgotten` table, so the knowledge is not lost.
+    * Backed-up values: f(node) = min over its children (in memory or forgotten); changes are
+      propagated to the ancestors. When all children of a node are deleted it becomes a leaf
+      again with its backed-up f, and is regenerated later if that f becomes the best.
+    * A leaf whose f is infinity (dead end / no room) can never lead to a solution.
+    Complete only if the shallowest solution fits into memory; optimal if it fits and h is
+    admissible. A successor whose state is already in memory with a smaller or equal g is
+    dominated and dropped (this also prevents cycles).
+    """
+    metrics = SearchMetrics(algorithm_name="SMA*")
+    limit = _SMA_DEFAULT_MEMORY if memory_limit is None else int(memory_limit)
+    if limit < 2:
+        metrics.status_message = "memory_limit must be at least 2 nodes."
+        return metrics
+
+    start = env.get_initial_state()
+    h_cache: Dict[DeepCoreState, float] = {}
+
+    def h_of(s: DeepCoreState) -> float:
+        v = h_cache.get(s)
+        if v is None:
+            v = heuristic(s, env)
+            h_cache[s] = v
+        return v
+
+    h0 = h_of(start)
+    if h0 == INF:
+        metrics.status_message = "Start state judged unsolvable by the heuristic."
+        return metrics
+
+    uid_counter = itertools.count()
+    root = _SMANode(start, None, None, 0, h0, 0, next(uid_counter))
+    best_heap: List[tuple] = []    # (f, -depth, uid, ver, node)   -> best leaf
+    worst_heap: List[tuple] = []   # (-f, depth, uid, ver, node)   -> worst leaf
+    state_count = {"memory": 1, "leaves": 0}
+
+    def push_leaf(node: _SMANode) -> None:
+        node.ver += 1
+        heapq.heappush(best_heap, (node.f, -node.depth, node.uid, node.ver, node))
+        heapq.heappush(worst_heap, (-node.f, node.depth, node.uid, node.ver, node))
+        state_count["leaves"] += 1
+
+    def is_valid_leaf(node: _SMANode, ver: int) -> bool:
+        return node.alive and not node.children and node.ver == ver
+
+    def pop_best() -> Optional[_SMANode]:
+        while best_heap:
+            _, _, _, ver, node = heapq.heappop(best_heap)
+            if is_valid_leaf(node, ver):
+                return node
+        return None
+
+    def delete_worst() -> bool:
+        """Forget the worst leaf. Returns False if nothing can be deleted."""
+        while worst_heap:
+            _, _, _, ver, node = heapq.heappop(worst_heap)
+            if not is_valid_leaf(node, ver):
+                continue
+            parent = node.parent
+            if parent is None:
+                return False
+            node.alive = False
+            state_count["memory"] -= 1
+            state_count["leaves"] -= 1
+            if in_memory.get(node.state) is node:
+                del in_memory[node.state]
+            del parent.children[node.action]
+            parent.forgotten[node.action] = node.f
+            if not parent.children:  # parent turns into a leaf with its backed-up value
+                parent.f = min(parent.forgotten.values())
+                push_leaf(parent)
+            return True
+        return False
+
+    def backup(node: Optional[_SMANode]) -> None:
+        while node is not None:
+            values = [c.f for c in node.children.values()]
+            values.extend(node.forgotten.values())
+            if not values:
+                return
+            new_f = min(values)
+            if new_f == node.f:
+                return
+            node.f = new_f
+            node = node.parent
+
+    # Duplicate detection inside the memory: state -> cheapest node currently held for it.
+    # A successor whose state is already in memory with g <= its own g is dominated and is
+    # not stored (this also removes cycles, since ancestors have smaller g).
+    in_memory: Dict[DeepCoreState, _SMANode] = {start: root}
+
+    def dominated(state: DeepCoreState, g: int) -> bool:
+        other = in_memory.get(state)
+        return other is not None and other.g <= g
+
+    push_leaf(root)
+
+    while True:
+        metrics.max_frontier_size = max(metrics.max_frontier_size, state_count["leaves"])
+        metrics.max_memory_size = max(metrics.max_memory_size, state_count["memory"])
+
+        node = pop_best()
+        if node is None or node.f == INF:
+            metrics.status_message = (
+                f"SMA* failed: no solution fits in {limit} nodes (or the space is exhausted)."
+            )
+            return metrics
+        state_count["leaves"] -= 1
+
+        if env.is_goal(node.state):
+            actions: List[str] = []
+            cur = node
+            while cur.parent is not None:
+                actions.append(cur.action)
+                cur = cur.parent
+            actions.reverse()
+            metrics.solved = True
+            metrics.solution_actions = actions
+            metrics.total_cost = node.g
+            metrics.status_message = f"Solved with memory_limit={limit}."
+            return metrics
+
+        if metrics.nodes_expanded >= _SMA_MAX_EXPANSIONS:
+            metrics.status_message = "SMA* stopped: expansion safety limit reached."
+            return metrics
+        metrics.nodes_expanded += 1
+        metrics.explored_order.append(node.state.bot_pos)
+
+        # ---- successors: first expansion, or regeneration of forgotten ones ----
+        specs: List[Tuple[str, DeepCoreState, int, float]] = []   # (action, state, step_cost, f)
+        if node.forgotten:
+            regenerate = node.forgotten
+            node.forgotten = {}
+            for act_name, f_val in regenerate.items():
+                child_state, step_cost = env.transition(node.state, act_name)
+                specs.append((act_name, child_state, step_cost, f_val))
+        else:
+            for action, child_state, step_cost in env.get_successors(node.state):
+                h = h_of(child_state)
+                if h == INF:
+                    continue
+                f_val = max(node.f, node.g + step_cost + h)   # path-max
+                specs.append((action.value, child_state, step_cost, f_val))
+        metrics.nodes_generated += len(specs)
+
+        added = 0
+        for act_name, child_state, step_cost, f_val in specs:
+            child_g = node.g + step_cost
+            if dominated(child_state, child_g):
+                continue
+            if node.depth + 1 >= limit and not env.is_goal(child_state):
+                f_val = INF   # a path this long cannot be held in memory, so it cannot be a solution
+            child = _SMANode(child_state, node, act_name, child_g, f_val,
+                             node.depth + 1, next(uid_counter))
+            node.children[act_name] = child
+            old = in_memory.get(child_state)
+            if old is None or child_g < old.g:
+                in_memory[child_state] = child
+            state_count["memory"] += 1
+            added += 1
+            push_leaf(child)
+            while state_count["memory"] > limit:
+                if not delete_worst():
+                    metrics.status_message = f"SMA* failed: memory_limit={limit} is too small."
+                    return metrics
+            metrics.max_memory_size = max(metrics.max_memory_size, state_count["memory"])
+
+        if added == 0:          # dead end (or everything dominated): can never lead to a goal
+            node.f = INF
+            push_leaf(node)
+            backup(node.parent)
+            continue
+        if not node.children:
+            # Every child was pushed out again. delete_worst() already turned `node` back into a
+            # leaf with its backed-up f; it is simply retried when it is the best leaf again.
+            continue
+        backup(node)
+
